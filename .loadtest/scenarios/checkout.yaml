@@ -2,16 +2,27 @@ version: 1
 name: checkout
 description: >
   Mezcla de tráfico de una tienda: la mayoría navega, algunos buscan y otros compran.
-  Usa el token fijo `dev-token` hasta que lt soporte `setup` + `extract` (rebanada 4).
+  Hace login una vez en setup y usa el token en todas las compras.
+setup:
+  - name: login
+    request:
+      method: POST
+      url: /auth/login
+      json: { user: "{{env.LT_USER}}", password: "{{env.LT_PASSWORD}}" }
+    extract:
+      token: { json: $.access_token }
+    source: { file: src/auth.ts, symbol: login, operation_id: login }
+defaults:
+  headers: { Authorization: "Bearer {{token}}" }
 flows:
   browse:
     weight: 70
     steps:
       - name: list_products
-        request: { method: GET, url: /products, query: { page: 3, limit: 20 } }
+        request: { method: GET, url: /products, query: { page: "{{$randomInt(1,100)}}", limit: 20 } }
         source: { file: src/products.ts, operation_id: listProducts }
       - name: get_product
-        request: { method: GET, url: /products/42 }
+        request: { method: GET, url: "/products/{{$randomInt(1,50000)}}" }
         source: { file: src/products.ts, operation_id: getProduct }
   search:
     weight: 10
@@ -26,15 +37,13 @@ flows:
         request:
           method: POST
           url: /orders
-          headers: { Authorization: Bearer dev-token }
-          json: { product_id: 42, quantity: 1 }
+          json: { product_id: "{{$randomInt(1,50000)}}", quantity: 1, idempotency_key: "{{$uuid}}" }
+        extract:
+          order_id: { json: $.id }
         tags: [write]
         source: { file: src/orders.ts, operation_id: createOrder }
       - name: get_order
-        request:
-          method: GET
-          url: /orders/1
-          headers: { Authorization: Bearer dev-token }
+        request: { method: GET, url: "/orders/{{order_id}}" }
         source: { file: src/orders.ts, operation_id: getOrder }
 load:
   executor: constant_rate
