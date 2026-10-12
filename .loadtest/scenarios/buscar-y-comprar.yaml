@@ -1,0 +1,42 @@
+version: 1
+name: buscar-y-comprar
+description: Usuarios que buscan productos y miran el detalle; una parte compra.
+meta: { created_by: agent }
+flows:
+  buscar:
+    weight: 60
+    steps:
+      - name: search_products
+        request: { method: GET, url: /products/search, query: { q: chair } }
+        source: { file: src/products.ts, symbol: "products.get('/search')", operation_id: searchProducts }
+      - name: get_product
+        request: { method: GET, url: /products/1201 }
+        source: { file: src/products.ts, symbol: "products.get('/:id')", operation_id: getProduct }
+  navegar:
+    weight: 25
+    steps:
+      - name: list_products
+        request: { method: GET, url: /products, query: { page: 2, limit: 20 } }
+        source: { file: src/products.ts, symbol: "products.get('/')", operation_id: listProducts }
+  comprar:
+    weight: 15
+    steps:
+      - name: create_order
+        request:
+          method: POST
+          url: /orders
+          headers: { Authorization: Bearer dev-token }
+          json: { product_id: 1201, quantity: 2 }
+        tags: [write]
+        source: { file: src/orders.ts, symbol: "orders.post('/')", operation_id: createOrder }
+      - name: get_order
+        request:
+          method: GET
+          url: /orders/500
+          headers: { Authorization: Bearer dev-token }
+        source: { file: src/orders.ts, symbol: "orders.get('/:id')", operation_id: getOrder }
+load:
+  executor: constant_rate
+  rate: 100/s
+  duration: 2m
+  max_vus: 50
