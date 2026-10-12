@@ -11,6 +11,8 @@ setup:
       json: { user: "{{env.LT_USER}}", password: "{{env.LT_PASSWORD}}" }
     extract:
       token: { json: $.access_token }
+    checks:
+      - status: 200
     source: { file: src/auth.ts, symbol: login, operation_id: login }
 defaults:
   headers: { Authorization: "Bearer {{token}}" }
@@ -23,6 +25,9 @@ flows:
         source: { file: src/products.ts, operation_id: listProducts }
       - name: get_product
         request: { method: GET, url: "/products/{{$randomInt(1,50000)}}" }
+        checks:
+          - status: 200
+          - { json: $.id, exists: true }
         source: { file: src/products.ts, operation_id: getProduct }
   search:
     weight: 10
@@ -40,10 +45,15 @@ flows:
           json: { product_id: "{{$randomInt(1,50000)}}", quantity: 1, idempotency_key: "{{$uuid}}" }
         extract:
           order_id: { json: $.id }
+        checks:
+          - status: 201
+          - { json: $.payment_id, matches: "^pay_" }
         tags: [write]
         source: { file: src/orders.ts, operation_id: createOrder }
       - name: get_order
         request: { method: GET, url: "/orders/{{order_id}}" }
+        checks:
+          - { json: $.id, equals: "{{order_id}}" }
         source: { file: src/orders.ts, operation_id: getOrder }
 load:
   executor: constant_rate
@@ -51,3 +61,8 @@ load:
   duration: 30s
   max_vus: 100
   graceful_stop: 10s
+thresholds:
+  - { metric: http.latency.p95, lt: 100ms }
+  - { metric: http.latency.p99, step: create_order, lt: 200ms }
+  - { metric: http.error_rate, lt: 1% }
+  - { metric: checks.pass_rate, gt: 99% }
