@@ -1,0 +1,17 @@
+version: 1
+name: login
+description: Solo login, para medir el costo de autenticar.
+flows:
+  main:
+    steps:
+      - name: login
+        request:
+          method: POST
+          url: /auth/login
+          json: { user: loadtest, password: loadtest }
+        source: { file: src/auth.ts, operation_id: login }
+load:
+  executor: constant_rate
+  rate: 30/s
+  duration: 15s
+  max_vus: 100

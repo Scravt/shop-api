@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title: shop-api
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:3000
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  schemas:
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        price_cents: { type: integer }
+        stock: { type: integer }
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        user: { type: string }
+        product_id: { type: integer }
+        quantity: { type: integer }
+        total_cents: { type: integer }
+        idempotency_key: { type: [string, 'null'] }
+        created_at: { type: string, format: date-time }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200': { description: OK }
+  /auth/login:
+    post:
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user, password]
+              properties:
+                user: { type: string, example: alice }
+                password: { type: string, example: alice123 }
+      responses:
+        '200':
+          description: Token de acceso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  token_type: { type: string, example: Bearer }
+        '401': { description: Credenciales inválidas }
+  /products:
+    get:
+      operationId: listProducts
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Página de productos }
+  /products/search:
+    get:
+      operationId: searchProducts
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string }, example: lamp }
+      responses:
+        '200': { description: Hasta 50 resultados }
+        '400': { description: Falta q }
+  /products/{id}:
+    get:
+      operationId: getProduct
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: Producto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { description: No existe }
+  /orders:
+    post:
+      operationId: createOrder
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id, quantity]
+              properties:
+                product_id: { type: integer, example: 42 }
+                quantity: { type: integer, minimum: 1, maximum: 10, example: 1 }
+                idempotency_key: { type: string }
+      responses:
+        '201':
+          description: Orden creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '200': { description: Ya existía una orden con esa idempotency_key }
+        '404': { description: Producto inexistente }
+        '409': { description: Sin stock }
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: Orden
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404': { description: No existe }

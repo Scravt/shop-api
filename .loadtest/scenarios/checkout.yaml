@@ -1,0 +1,44 @@
+version: 1
+name: checkout
+description: >
+  Mezcla de tráfico de una tienda: la mayoría navega, algunos buscan y otros compran.
+  Usa el token fijo `dev-token` hasta que lt soporte `setup` + `extract` (rebanada 4).
+flows:
+  browse:
+    weight: 70
+    steps:
+      - name: list_products
+        request: { method: GET, url: /products, query: { page: 3, limit: 20 } }
+        source: { file: src/products.ts, operation_id: listProducts }
+      - name: get_product
+        request: { method: GET, url: /products/42 }
+        source: { file: src/products.ts, operation_id: getProduct }
+  search:
+    weight: 10
+    steps:
+      - name: search_products
+        request: { method: GET, url: /products/search, query: { q: lamp } }
+        source: { file: src/products.ts, operation_id: searchProducts }
+  buy:
+    weight: 20
+    steps:
+      - name: create_order
+        request:
+          method: POST
+          url: /orders
+          headers: { Authorization: Bearer dev-token }
+          json: { product_id: 42, quantity: 1 }
+        tags: [write]
+        source: { file: src/orders.ts, operation_id: createOrder }
+      - name: get_order
+        request:
+          method: GET
+          url: /orders/1
+          headers: { Authorization: Bearer dev-token }
+        source: { file: src/orders.ts, operation_id: getOrder }
+load:
+  executor: constant_rate
+  rate: 50/s
+  duration: 30s
+  max_vus: 100
+  graceful_stop: 10s
