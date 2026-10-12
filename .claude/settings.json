@@ -16,7 +16,8 @@
     "allow": [
       "Bash(lt validate:*)",
       "Bash(lt check:*)",
-      "Bash(lt schema)"
+      "Bash(lt schema)",
+      "Bash(lt findings:*)"
     ]
   }
 }
