@@ -1,5 +1,8 @@
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { NextFunction, Request, Response } from 'express';
+
+const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
 interface Credentials {
   salt: Buffer;
@@ -22,7 +25,7 @@ addUser('alice', 'alice123');
 addUser('bob', 'bob123');
 addUser('loadtest', 'loadtest');
 
-export function login(req: Request, res: Response): void {
+export async function login(req: Request, res: Response): Promise<void> {
   const { user, password } = req.body ?? {};
   if (typeof user !== 'string' || typeof password !== 'string') {
     res.status(400).json({ error: 'user y password son obligatorios' });
@@ -30,9 +33,10 @@ export function login(req: Request, res: Response): void {
   }
 
   const credentials = users.get(user);
+  // scrypt asincrónico: el hash corre en el pool de libuv y no bloquea el event loop.
   const valid =
     credentials !== undefined &&
-    timingSafeEqual(scryptSync(password, credentials.salt, 64), credentials.hash);
+    timingSafeEqual(await scryptAsync(password, credentials.salt, 64), credentials.hash);
   if (!valid) {
     res.status(401).json({ error: 'credenciales inválidas' });
     return;
