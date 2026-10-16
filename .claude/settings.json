@@ -17,7 +17,8 @@
       "Bash(lt validate:*)",
       "Bash(lt check:*)",
       "Bash(lt schema)",
-      "Bash(lt findings:*)"
+      "Bash(lt findings:*)",
+      "Bash(lt compare:*)"
     ]
   }
 }
