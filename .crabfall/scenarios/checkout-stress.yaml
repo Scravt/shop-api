@@ -3,7 +3,7 @@ name: checkout-stress
 description: >
   Igual que checkout, a 300 it/s, para encontrar dónde se degrada.
   Mezcla de tráfico de una tienda: la mayoría navega, algunos buscan y otros compran.
-  Usa el token fijo `dev-token` hasta que lt soporte `setup` + `extract` (rebanada 4).
+  Usa el token fijo `dev-token` hasta que Crabfall soporte `setup` + `extract` (rebanada 4).
 flows:
   browse:
     weight: 70
