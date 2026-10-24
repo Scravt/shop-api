@@ -1,0 +1,21 @@
+version: 1
+name: login-ramp
+description: Solo login, con la tasa subiendo de 10/s a 80/s, para ver dónde se satura la autenticación.
+flows:
+  main:
+    steps:
+      - name: login
+        request:
+          method: POST
+          url: /auth/login
+          json: { user: "{{env.LT_USER}}", password: "{{env.LT_PASSWORD}}" }
+        checks:
+          - status: 200
+        source: { file: src/auth.ts, symbol: login, operation_id: login }
+load:
+  executor: ramping_rate
+  start_rate: 10/s
+  stages:
+    - { target: 80/s, duration: 30s }
+  max_vus: 200
+  graceful_stop: 10s

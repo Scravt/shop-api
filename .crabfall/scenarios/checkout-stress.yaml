@@ -1,8 +1,9 @@
 version: 1
-name: checkout
+name: checkout-stress
 description: >
+  Igual que checkout, a 300 it/s, para encontrar dónde se degrada.
   Mezcla de tráfico de una tienda: la mayoría navega, algunos buscan y otros compran.
-  Usa el token fijo `dev-token` hasta que lt soporte `setup` + `extract` (rebanada 4).
+  Usa el token fijo `dev-token` hasta que Crabfall soporte `setup` + `extract` (rebanada 4).
 flows:
   browse:
     weight: 70
@@ -38,7 +39,7 @@ flows:
         source: { file: src/orders.ts, operation_id: getOrder }
 load:
   executor: constant_rate
-  rate: 50/s
-  duration: 30s
-  max_vus: 100
+  rate: 300/s
+  duration: 20s
+  max_vus: 300
   graceful_stop: 10s

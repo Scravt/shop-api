@@ -1,0 +1,46 @@
+version: 1
+name: orders-per-user
+description: >
+  Cada VU es un usuario de data/users.csv: hace login una sola vez (vu_setup) y después
+  compra en loop con su token. El check verifica que cada pedido quede a su nombre.
+data:
+  users: { file: data/users.csv }
+vu_setup:
+  - name: login
+    request:
+      method: POST
+      url: /auth/login
+      json: { user: "{{users.user}}", password: "{{users.password}}" }
+    extract:
+      token: { json: $.access_token }
+    checks:
+      - status: 200
+    source: { file: src/auth.ts, symbol: login, operation_id: login }
+defaults:
+  headers: { Authorization: "Bearer {{token}}" }
+  think: 1s-2s
+flows:
+  buy:
+    steps:
+      - name: create_order
+        request:
+          method: POST
+          url: /orders
+          json: { product_id: "{{$randomInt(1,50000)}}", quantity: 1, idempotency_key: "{{$uuid}}" }
+        extract:
+          order_id: { json: $.id }
+        checks:
+          - status: 201
+          - { json: $.user, equals: "{{users.user}}" }
+        tags: [write]
+        source: { file: src/orders.ts, operation_id: createOrder }
+      - name: get_order
+        request: { method: GET, url: "/orders/{{order_id}}" }
+        checks:
+          - status: 200
+          - { json: $.user, equals: "{{users.user}}" }
+        source: { file: src/orders.ts, operation_id: getOrder }
+load:
+  executor: constant_vus
+  vus: 3
+  duration: 20s

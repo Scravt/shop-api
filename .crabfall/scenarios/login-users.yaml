@@ -1,0 +1,35 @@
+version: 1
+name: login-users
+description: >
+  Cada iteración entra con un usuario distinto (data/users.csv, en orden) y mira un
+  producto elegido al azar de data/products.json.
+data:
+  users: { file: data/users.csv }
+  products: { file: data/products.json, pick: random }
+flows:
+  main:
+    steps:
+      - name: login
+        request:
+          method: POST
+          url: /auth/login
+          json: { user: "{{users.user}}", password: "{{users.password}}" }
+        extract:
+          token: { json: $.access_token }
+        checks:
+          - status: 200
+        source: { file: src/auth.ts, symbol: login, operation_id: login }
+      - name: get_product
+        request:
+          method: GET
+          url: /products/{{products.id}}
+          headers: { Authorization: "Bearer {{token}}" }
+        checks:
+          - status: 200
+          - { json: $.id, equals: "{{products.id}}" }
+        source: { file: src/products.ts, operation_id: getProduct }
+load:
+  executor: constant_rate
+  rate: 5/s
+  duration: 10s
+  max_vus: 20
