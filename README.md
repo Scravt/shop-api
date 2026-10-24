@@ -35,3 +35,7 @@ crabfall run checkout           # mezcla: 70% navega, 10% busca, 20% compra
 crabfall run checkout-stress    # lo mismo a 300 it/s
 crabfall run login              # solo login
 ```
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your option. Copyright 2026 Gonzalo Martínez.
