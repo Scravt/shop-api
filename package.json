@@ -2,6 +2,7 @@
   "name": "shop-api",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "description": "API de ejemplo para probar lt en local",
   "type": "module",
   "scripts": {
